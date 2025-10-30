@@ -121,11 +121,33 @@ async function loadStatellite(renderer: THREE.WebGLRenderer) {
                         context.fillRect(tileXOffset, tileYOffset, tileSize, tileSize)
                     })
             )
+
         }
     }
     await Promise.all(loadImagePromises)
+    const topLeftPx = lonLatToGlobalPixel(BOUNDS.lonMin, BOUNDS.latMax, satelliteDetail, tileSize);
+    const bottomRightPx = lonLatToGlobalPixel(BOUNDS.lonMax, BOUNDS.latMin, satelliteDetail, tileSize);
+    const cropX = Math.round(topLeftPx.x - tileXMin * tileSize);
+    const cropY = Math.round(topLeftPx.y - tileYMin * tileSize);
+    const cropWidth = Math.round(bottomRightPx.x - topLeftPx.x);
+    const cropHeight = Math.round(bottomRightPx.y - topLeftPx.y);
+    let finalCanvas = canvas;
+    if (cropWidth > 0 && cropHeight > 0) {
+        const clipped = document.createElement("canvas");
+        clipped.width = cropWidth;
+        clipped.height = cropHeight;
+        const clippedCtx = clipped.getContext("2d");
+        if (clippedCtx) {
+            clippedCtx.drawImage(
+                canvas,
+                cropX, cropY, cropWidth, cropHeight,
+                0, 0, cropWidth, cropHeight
+            );
+            finalCanvas = clipped;
+        }
+    }
 
-    const texture = new THREE.Texture(canvas)
+    const texture = new THREE.Texture(finalCanvas)
     texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -376,7 +398,6 @@ async function terrariumToPlane(elevImageData: ImageData | null, elevMeta: elevM
 }
 function createGrid(depthMax: number) {
     //Create Grid Verts
-    const epsilon = 1e-6
     const gridVerts = []
 
     //step
@@ -384,31 +405,37 @@ function createGrid(depthMax: number) {
     const latRef = (BOUNDS.latMax + BOUNDS.latMin) / 2
     const lonRef = (BOUNDS.lonMax + BOUNDS.lonMin) / 2
     const xStep = lonLatToXY(lonRef + degStep, latRef).x - lonLatToXY(lonRef, latRef).x
-    const yStep = lonLatToXY(lonRef, latRef + degStep).y - lonLatToXY(lonRef, latRef).y
     const zStep = xStep // zStep 和 xStep (lon) 一樣大
 
     const xMin = 0;
     const xMax = mapWidth;
     const yMin = 0;
     const yMax = mapHeight;
-    const latLines = Math.ceil((BOUNDS.latMax - BOUNDS.latMin) / degStep) + 1
-    const lonLines = Math.ceil((BOUNDS.lonMax - BOUNDS.lonMin) / degStep) + 1
     const depthLines = Math.ceil(depthMax / zStep) + 1
 
-    for (let i = 0; i < lonLines; i++) {
-        const x = Math.min(mapWidth, i * xStep);
+    const startLon = Math.ceil(BOUNDS.lonMin);
+    const endLon = Math.floor(BOUNDS.lonMax);
+    for (let lon = startLon; lon <= endLon; lon += degStep) {
+        const { x } = lonLatToMapXY(lon, latRef);
         gridVerts.push(x, yMin, -depthMax, x, yMax, -depthMax);
         gridVerts.push(x, yMin, 0, x, yMax, 0);
+        gridVerts.push(x, yMin, 0, x, yMin, -depthMax);
+        gridVerts.push(x, yMax, 0, x, yMax, -depthMax);
 
         for (let j = 0; j < depthLines; j++) {
             const z = -j * zStep;
             gridVerts.push(x, yMin, z, x, yMax, z);
         }
     }
-    for (let i = 0; i < latLines; i++) {
-        const y = Math.min(mapHeight, i * yStep);
+
+    const startLat = Math.ceil(BOUNDS.latMin);
+    const endLat = Math.floor(BOUNDS.latMax);
+    for (let lat = startLat; lat <= endLat; lat += degStep) {
+        const { y } = lonLatToMapXY(lonRef, lat);
         gridVerts.push(xMin, y, -depthMax, xMax, y, -depthMax);
         gridVerts.push(xMin, y, 0, xMax, y, 0);
+        gridVerts.push(xMin, y, 0, xMin, y, -depthMax);
+        gridVerts.push(xMax, y, 0, xMax, y, -depthMax);
 
         for (let j = 0; j < depthLines; j++) {
             const z = -j * zStep;
@@ -453,10 +480,10 @@ const terrainExaggeration = 3
 
 const EARTH_RADIUS = 6378.137;
 const BOUNDS = {
-    lonMin: 116,
-    lonMax: 125.5,
+    lonMin: 118,
+    lonMax: 126,
     latMin: 20.0,
-    latMax: 26.0,
+    latMax: 27.0,
 };
 const mapOrigin = lonLatToXY(BOUNDS.lonMin, BOUNDS.latMin);
 const { mapWidth, mapHeight } = boundsToMapSize(BOUNDS)
