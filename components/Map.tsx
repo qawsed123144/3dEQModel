@@ -500,8 +500,8 @@ const earthquakeColors: number[] = []
 const gridStepMin = [20, 20, 15]
 const gridDivision = [10, 10, 6]
 
-//
 export default function Map({ data }: { data: Earthquake[] }) {
+    const initializedRef = useRef(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const worldRef = useRef<THREE.Group | null>(null);
@@ -519,8 +519,6 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
     const [width, setWidth] = useState(800);
 
-    let elevImageData: ImageData | null = null;
-    let elevMeta: any = null;
     const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
     const earthquakePoints = useMemo(() => (data), [data]);
     const depthMaxGrid = Math.max(150, Math.max(...earthquakePoints.map((p) => p.depth)));
@@ -542,7 +540,9 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
     // Three.js
     useEffect(() => {
+        if (initializedRef.current) return;
         if (!canvasRef.current) return;
+        initializedRef.current = true;
 
         //Scence
         const scene = new THREE.Scene()
@@ -554,6 +554,14 @@ export default function Map({ data }: { data: Earthquake[] }) {
         scene.add(world)
         worldRef.current = world
 
+        //Renderer
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvasRef.current,
+            antialias: true,
+        })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(width, height)
+
         //Plane： 圖層
         const planeGeo = new THREE.PlaneGeometry(mapWidth, mapHeight, 100, 100)
         const planeMat = new THREE.MeshBasicMaterial({
@@ -563,14 +571,6 @@ export default function Map({ data }: { data: Earthquake[] }) {
         const plane = new THREE.Mesh(planeGeo, planeMat)
         plane.position.set(mapWidth * 0.5, mapHeight * 0.5, 0)
         world.add(plane)
-
-        //Renderer
-        const renderer = new THREE.WebGLRenderer({
-            canvas: canvasRef.current,
-            antialias: true,
-        })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-        renderer.setSize(width, height)
 
         //Load Texture
         loadStatellite(renderer).then((newTexture) => {
@@ -583,6 +583,10 @@ export default function Map({ data }: { data: Earthquake[] }) {
                 plane.material.needsUpdate = true
             }
         })
+
+        //Grid beneath
+        grid = createGrid(depthRange)
+        world.add(grid)
 
         //Camera
         const camera = new THREE.PerspectiveCamera(camera_fov, width / height, camera_near, camera_far)
@@ -597,44 +601,40 @@ export default function Map({ data }: { data: Earthquake[] }) {
         controls.screenSpacePanning = true;
         controls.enableDamping = true
 
-        // Load Terrarium then Update
-        loadTerrarium().then(({ elevImageData, elevMeta }) => {
-            elevImageData = elevImageData
-            elevMeta = elevMeta
-            terrariumToPlane(elevImageData, elevMeta, planeGeo)
-        })
-
-        //Update And 3D Points
-        sphereGeo = new THREE.SphereGeometry(1, 12, 10);
-        sphereMat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 30 });
-        spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, earthquakePoints.length);
-        spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        updateAnd3DPoints(earthquakePoints, earthquakePositions, earthquakeRadiuses, elevImageData, elevMeta, spheres, depthMaxGrid)
-        world.add(spheres)
-
-        //Wall
-        wallsGroup = new THREE.Group();
-        cleanWalls(wallGeos, wallMeshes, edgeGeos, wallsGroup, elevImageData, elevMeta, depthRange)
-        buildWalls(edgeGeos, wallsGroup, elevImageData, elevMeta, depthRange)
-        world.add(wallsGroup);
-
         // Lights
         scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const dir = new THREE.DirectionalLight(0xffffff, 0.6);
         dir.position.set(1, 1, 2);
         scene.add(dir);
 
-        //Grid beneath
-        grid = createGrid(depthRange)
-        world.add(grid)
-
-        //Animate 迴圈
+        //Animate: 開始渲染
         const animate = () => {
             rafId = requestAnimationFrame(animate)
             controls.update()
             renderer.render(scene, camera)
         }
-        animate()
+        animate();
+
+        (async () => {
+            // Load Terrarium then Update
+            const { elevImageData, elevMeta } = await loadTerrarium();
+            terrariumToPlane(elevImageData, elevMeta, planeGeo)
+
+            //Wall
+            wallsGroup = new THREE.Group();
+            cleanWalls(wallGeos, wallMeshes, edgeGeos, wallsGroup, elevImageData, elevMeta, depthRange)
+            buildWalls(edgeGeos, wallsGroup, elevImageData, elevMeta, depthRange)
+            world.add(wallsGroup);
+
+            //Update And 3D Points
+            sphereGeo = new THREE.SphereGeometry(1, 12, 10);
+            sphereMat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 30 });
+            spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, earthquakePoints.length);
+            spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            updateAnd3DPoints(earthquakePoints, earthquakePositions, earthquakeRadiuses, elevImageData, elevMeta, spheres, depthMaxGrid)
+            world.add(spheres)
+        }
+        )()
 
         //Clean up
         return () => {
@@ -665,9 +665,7 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
             renderer.dispose();
         }
-
-        //Dependencies
-    }, [earthquakePoints, width])
+    }, [])
 
     //ScaleSet GUI
     useEffect(() => {
