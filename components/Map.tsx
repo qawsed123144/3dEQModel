@@ -465,8 +465,8 @@ const camera_fov = 45
 const camera_near = 0.1
 const camera_far = 5000
 
-const satelliteDetail = 9
-const elevationDetail = 10
+const satelliteDetail = 8
+const elevationDetail = 5
 
 const segmentsAlong = 48
 const segmentsDepth = 24
