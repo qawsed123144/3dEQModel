@@ -343,7 +343,6 @@ function updateAnd3DPoints(points: Earthquake[], positions: number[], radiuses: 
 
         positions.push(x, y, z)
         const color = getEarthquakeColor(point.depth, depthMaxGrid)
-        earthquakeColors.push(color.r, color.g, color.b)
 
         const radius = THREE.MathUtils.mapLinear(point.amplitude, 2.5, 7.0, 0.8, 4.0)
         radiuses.push(radius)
@@ -410,8 +409,11 @@ function createGrid(depthRange: number) {
 }
 function getEarthquakeColor(depth: number, depthMaxGrid: number) {
     const t = Math.min(1, depth / depthMaxGrid);
-    const color = new THREE.Color().setHSL(0.12 - 0.12 * t, 0.85, 0.5 - 0.2 * t)
-    return color
+    const hue = 0.0 + 0.83 * t;
+    const saturation = 0.95;
+    const lightness = 0.3 - 0.25 * t;
+
+    return new THREE.Color().setHSL(hue, saturation, lightness);
 }
 
 //
@@ -495,7 +497,6 @@ const corners = [
 
 const earthquakePositions: number[] = []
 const earthquakeRadiuses: number[] = []
-const earthquakeColors: number[] = []
 
 const gridStepMin = [20, 20, 15]
 const gridDivision = [10, 10, 6]
@@ -511,7 +512,7 @@ export default function Map({ data }: { data: Earthquake[] }) {
     let texture: THREE.Texture | null = null;
     let spheres: THREE.InstancedMesh | null = null;
     let sphereGeo: THREE.SphereGeometry | null = null;
-    let sphereMat: THREE.MeshPhongMaterial | null = null;
+    let sphereMat: THREE.MeshBasicMaterial | THREE.MeshPhongMaterial | null = null;
     const wallGeos: THREE.BufferGeometry[] = []
     let wallsGroup: THREE.Group | null = null;
     const edgeGeos: THREE.BufferGeometry[] = []
@@ -521,8 +522,8 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
     const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
     const earthquakePoints = useMemo(() => (data), [data]);
-    const depthMaxGrid = Math.max(150, Math.max(...earthquakePoints.map((p) => p.depth)));
-    const depthRange = depthMaxGrid * (scaleSet.scaleZ);
+    const depthMax = Math.max(...earthquakePoints.map((p) => p.depth));
+    const depthRange = depthMax * (scaleSet.scaleZ);
 
     // 監聽容器大小
     useEffect(() => {
@@ -630,10 +631,15 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
             //Update And 3D Points
             sphereGeo = new THREE.SphereGeometry(1, 12, 10);
-            sphereMat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 30 });
+            const vertexCount = sphereGeo.attributes.position.count;
+            const baseColors = new Float32Array(vertexCount * 3).fill(1);
+            sphereGeo.setAttribute("color", new THREE.BufferAttribute(baseColors, 3));
+            sphereMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
+            sphereMat.needsUpdate = true;
             spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, earthquakePoints.length);
             spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-            updateAnd3DPoints(earthquakePoints, earthquakePositions, earthquakeRadiuses, elevImageData, elevMeta, spheres, depthMaxGrid)
+            updateAnd3DPoints(earthquakePoints, earthquakePositions, earthquakeRadiuses, elevImageData, elevMeta, spheres, depthMax)
+            sphereMat.needsUpdate = true;
             world.add(spheres)
         }
         )()
