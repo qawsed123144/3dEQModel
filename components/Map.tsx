@@ -567,12 +567,14 @@ export default function Map({ data }: { data: Earthquake[] }) {
         const planeMat = new THREE.MeshBasicMaterial({
             color: planeMatColor,
             side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.7
         })
         const plane = new THREE.Mesh(planeGeo, planeMat)
         plane.position.set(mapWidth * 0.5, mapHeight * 0.5, 0)
         world.add(plane)
 
-        //Load Texture
+        //Load Statellite
         loadStatellite(renderer).then((newTexture) => {
             if (newTexture) {
                 texture?.dispose()
