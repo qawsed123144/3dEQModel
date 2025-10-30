@@ -513,9 +513,6 @@ const corners = [
 const earthquakePositions: number[] = []
 const earthquakeRadiuses: number[] = []
 
-const gridStepMin = [20, 20, 15]
-const gridDivision = [10, 10, 6]
-
 export default function Map({ data }: { data: Earthquake[] }) {
     const initializedRef = useRef(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -537,7 +534,7 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
     const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
     const earthquakePoints = useMemo(() => (data), [data]);
-    const depthMax = Math.max(...earthquakePoints.map((p) => p.depth));
+    const depthMax = Math.max(350, ...earthquakePoints.map((p) => p.depth));
 
     // 監聽容器大小
     useEffect(() => {
