@@ -374,32 +374,47 @@ async function terrariumToPlane(elevImageData: ImageData | null, elevMeta: elevM
     posAttr.needsUpdate = true;
     planeGeo.computeVertexNormals();
 }
-function createGrid(depthRange: number) {
+function createGrid(depthMax: number) {
     //Create Grid Verts
     const epsilon = 1e-6
     const gridVerts = []
-    const xStep = (gridStepMin[0], Math.round(mapWidth / gridDivision[0]))
-    const ySetp = (gridStepMin[1], Math.round(mapWidth / gridDivision[1]))
-    const zStep = (gridStepMin[2], Math.round(mapWidth / gridDivision[2]))
-    //Verts Along Z
-    for (let x = 0; x <= mapWidth + epsilon; x += xStep) {
-        for (let y = 0; y <= mapHeight + epsilon; y += ySetp) {
-            gridVerts.push(x, y, 0, x, y, -depthRange)
-        }
-    }
-    //Verts Along X
-    for (let z = 0; z >= -depthRange - epsilon; z -= zStep) {
-        for (let y = 0; y <= mapHeight + epsilon; y += ySetp) {
-            gridVerts.push(0, y, z, mapWidth, y, z);
-        }
-    }
-    //Verts Along Y
-    for (let z = 0; z >= -depthRange - epsilon; z -= zStep) {
-        for (let x = 0; x <= mapWidth + epsilon; x += xStep) {
-            gridVerts.push(x, 0, z, x, mapHeight, z)
-        }
-    }
 
+    //step
+    const degStep = 1
+    const latRef = (BOUNDS.latMax + BOUNDS.latMin) / 2
+    const lonRef = (BOUNDS.lonMax + BOUNDS.lonMin) / 2
+    const xStep = lonLatToXY(lonRef + degStep, latRef).x - lonLatToXY(lonRef, latRef).x
+    const yStep = lonLatToXY(lonRef, latRef + degStep).y - lonLatToXY(lonRef, latRef).y
+    const zStep = xStep // zStep 和 xStep (lon) 一樣大
+
+    const xMin = 0;
+    const xMax = mapWidth;
+    const yMin = 0;
+    const yMax = mapHeight;
+    const latLines = Math.ceil((BOUNDS.latMax - BOUNDS.latMin) / degStep) + 1
+    const lonLines = Math.ceil((BOUNDS.lonMax - BOUNDS.lonMin) / degStep) + 1
+    const depthLines = Math.ceil(depthMax / zStep) + 1
+
+    for (let i = 0; i < lonLines; i++) {
+        const x = Math.min(mapWidth, i * xStep);
+        gridVerts.push(x, yMin, -depthMax, x, yMax, -depthMax);
+        gridVerts.push(x, yMin, 0, x, yMax, 0);
+
+        for (let j = 0; j < depthLines; j++) {
+            const z = -j * zStep;
+            gridVerts.push(x, yMin, z, x, yMax, z);
+        }
+    }
+    for (let i = 0; i < latLines; i++) {
+        const y = Math.min(mapHeight, i * yStep);
+        gridVerts.push(xMin, y, -depthMax, xMax, y, -depthMax);
+        gridVerts.push(xMin, y, 0, xMax, y, 0);
+
+        for (let j = 0; j < depthLines; j++) {
+            const z = -j * zStep;
+            gridVerts.push(xMin, y, z, xMax, y, z);
+        }
+    }
     //Create Grid
     const gridGeo = new THREE.BufferGeometry();
     const gridMat = new THREE.LineBasicMaterial({ color: gridBeneathColor, transparent: true, opacity: gridBeneathOpacity });
@@ -523,7 +538,6 @@ export default function Map({ data }: { data: Earthquake[] }) {
     const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
     const earthquakePoints = useMemo(() => (data), [data]);
     const depthMax = Math.max(...earthquakePoints.map((p) => p.depth));
-    const depthRange = depthMax * (scaleSet.scaleZ);
 
     // 監聽容器大小
     useEffect(() => {
@@ -588,7 +602,7 @@ export default function Map({ data }: { data: Earthquake[] }) {
         })
 
         //Grid beneath
-        grid = createGrid(depthRange)
+        grid = createGrid(depthMax)
         world.add(grid)
 
         //Camera
@@ -625,8 +639,8 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
             //Wall
             wallsGroup = new THREE.Group();
-            cleanWalls(wallGeos, wallMeshes, edgeGeos, wallsGroup, elevImageData, elevMeta, depthRange)
-            buildWalls(edgeGeos, wallsGroup, elevImageData, elevMeta, depthRange)
+            cleanWalls(wallGeos, wallMeshes, edgeGeos, wallsGroup, elevImageData, elevMeta, depthMax)
+            buildWalls(edgeGeos, wallsGroup, elevImageData, elevMeta, depthMax)
             world.add(wallsGroup);
 
             //Update And 3D Points
