@@ -200,7 +200,7 @@ function buildWallX(xConst: number, elevImageData: ImageData | null, elevMeta: e
         const topZ = elevationAtXY(xConst, y, elevImageData, elevMeta, terrainExaggeration);
         for (let j = 0; j <= segmentsDepth; j++) {
             const tz = j / segmentsDepth;
-            const z = topZ - depthRange * tz;
+            const z = THREE.MathUtils.lerp(topZ, -depthRange, tz);
             positions.push(xConst, y, z);
             aT.push(tz);
         }
@@ -235,7 +235,7 @@ function buildWallY(yConst: number, elevImageData: ImageData | null, elevMeta: e
         const topZ = elevationAtXY(x, yConst, elevImageData, elevMeta, terrainExaggeration);
         for (let j = 0; j <= segmentsDepth; j++) {
             const tz = j / segmentsDepth;
-            const z = topZ - depthRange * tz;
+            const z = THREE.MathUtils.lerp(topZ, -depthRange, tz);
             positions.push(x, yConst, z);
             aT.push(tz);
         }
@@ -293,8 +293,7 @@ function polylineBottomX(xConst: number, elevImageData: ImageData | null, elevMe
     for (let i = 0; i <= segments; i++) {
         const t = i / segments;
         const y = t * mapHeight;
-        const zTop = elevationAtXY(xConst, y, elevImageData, elevMeta, terrainExaggeration);
-        positions.push(xConst, y, zTop - depthRange);
+        positions.push(xConst, y, -depthRange);
     }
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -307,8 +306,7 @@ function polylineBottomY(yConst: number, elevImageData: ImageData | null, elevMe
     for (let i = 0; i <= segments; i++) {
         const t = i / segments;
         const x = t * mapWidth;
-        const zTop = elevationAtXY(x, yConst, elevImageData, elevMeta, terrainExaggeration);
-        positions.push(x, yConst, zTop - depthRange);
+        positions.push(x, yConst, -depthRange);
     }
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -330,7 +328,7 @@ function buildWalls(edgeGeos: THREE.BufferGeometry[], wallGroup: THREE.Group, el
         const geo = new THREE.BufferGeometry();
         geo.setAttribute(
             "position",
-            new THREE.Float32BufferAttribute([x, y, zTop, x, y, zTop - depthRange], 3)
+            new THREE.Float32BufferAttribute([x, y, zTop, x, y, -depthRange], 3)
         )
         edgeGeos.push(geo)
         const edgeLine = new THREE.Line(geo, edgeMat)
@@ -353,15 +351,13 @@ function cleanWalls(wallGeos: THREE.BufferGeometry[], wallMeshes: THREE.Mesh[], 
     polylineBottomX(0, elevImageData, elevMeta, wallGroup, edgeGeos, depthRange,);
     polylineBottomY(0, elevImageData, elevMeta, wallGroup, edgeGeos, depthRange);
 }
-function updateAnd3DPoints(points: Earthquake[], positions: number[], radiuses: number[], elevImageData: ImageData | null, elevMeta: elevMeta | null,
-    spheres: THREE.InstancedMesh, depthMaxGrid: number
+function pointsTo3D(points: Earthquake[], positions: number[], radiuses: number[], spheres: THREE.InstancedMesh, depthMaxGrid: number
 ) {
     const dummy = new THREE.Object3D();
 
     points.forEach((point, index) => {
         const { x, y } = lonLatToMapXY(point.lon, point.lat);
-        const surfaceZ = elevationAtXY(x, y, elevImageData, elevMeta, terrainExaggeration)
-        const z = surfaceZ - point.depth
+        const z = - point.depth
 
         positions.push(x, y, z)
         const color = getEarthquakeColor(point.depth, depthMaxGrid)
@@ -396,7 +392,7 @@ async function terrariumToPlane(elevImageData: ImageData | null, elevMeta: elevM
     posAttr.needsUpdate = true;
     planeGeo.computeVertexNormals();
 }
-function createGrid(depthMax: number) {
+function createGrid(depthMax: number): THREE.LineSegments | null {
     //Create Grid Verts
     const gridVerts = []
 
@@ -406,48 +402,77 @@ function createGrid(depthMax: number) {
     const lonRef = (BOUNDS.lonMax + BOUNDS.lonMin) / 2
     const xStep = lonLatToXY(lonRef + degStep, latRef).x - lonLatToXY(lonRef, latRef).x
     const zStep = xStep // zStep 和 xStep (lon) 一樣大
-
-    const xMin = 0;
-    const xMax = mapWidth;
-    const yMin = 0;
-    const yMax = mapHeight;
-    const depthLines = Math.ceil(depthMax / zStep) + 1
+    const depthLineCounts = Math.max(1, Math.ceil(depthMax / zStep));
+    const depthLevels = depthLineCounts + 1;
 
     const startLon = Math.ceil(BOUNDS.lonMin);
     const endLon = Math.floor(BOUNDS.lonMax);
-    for (let lon = startLon; lon <= endLon; lon += degStep) {
-        const { x } = lonLatToMapXY(lon, latRef);
-        gridVerts.push(x, yMin, -depthMax, x, yMax, -depthMax);
-        gridVerts.push(x, yMin, 0, x, yMax, 0);
-        gridVerts.push(x, yMin, 0, x, yMin, -depthMax);
-        gridVerts.push(x, yMax, 0, x, yMax, -depthMax);
+    const startLat = Math.ceil(BOUNDS.latMin);
+    const endLat = Math.floor(BOUNDS.latMax);
 
-        for (let j = 0; j < depthLines; j++) {
-            const z = -j * zStep;
-            gridVerts.push(x, yMin, z, x, yMax, z);
+    const lonSamples: number[] = [];
+    const latSamples: number[] = [];
+    lonSamples.push(BOUNDS.lonMin);
+    for (let lon = startLon; lon <= endLon; lon += degStep) lonSamples.push(lon);
+    lonSamples.push(BOUNDS.lonMax);
+    latSamples.push(BOUNDS.latMin);
+    for (let lat = startLat; lat <= endLat; lat += degStep) latSamples.push(lat);
+    latSamples.push(BOUNDS.latMax);
+    const lonCount = lonSamples.length;
+    const latCount = latSamples.length;
+
+    const points = Array.from({ length: latCount }, (_, latIdx) => {
+        const lat = latSamples[latIdx];
+        return lonSamples.map((lon) => lonLatToMapXY(lon, lat));
+    });
+
+    for (let latIdx = 0; latIdx < latCount; latIdx++) {
+        for (let lonIdx = 0; lonIdx < lonCount; lonIdx++) {
+            const { x, y } = points[latIdx][lonIdx];
+            gridVerts.push(x, y, 0, x, y, -depthMax);
         }
     }
 
-    const startLat = Math.ceil(BOUNDS.latMin);
-    const endLat = Math.floor(BOUNDS.latMax);
-    for (let lat = startLat; lat <= endLat; lat += degStep) {
-        const { y } = lonLatToMapXY(lonRef, lat);
-        gridVerts.push(xMin, y, -depthMax, xMax, y, -depthMax);
-        gridVerts.push(xMin, y, 0, xMax, y, 0);
-        gridVerts.push(xMin, y, 0, xMin, y, -depthMax);
-        gridVerts.push(xMax, y, 0, xMax, y, -depthMax);
+    for (let lonIdx = 0; lonIdx < lonCount; lonIdx++) {
+        for (let latIdx = 0; latIdx < latCount - 1; latIdx++) {
+            const a = points[latIdx][lonIdx];
+            const b = points[latIdx + 1][lonIdx];
+            for (let i = 0; i < depthLevels; i++) {
+                const depth = Math.min(depthMax, i * zStep);
+                gridVerts.push(
+                    a.x,
+                    a.y,
+                    -depth,
+                    b.x,
+                    b.y,
+                    -depth
+                );
+            }
+        }
+    }
 
-        for (let j = 0; j < depthLines; j++) {
-            const z = -j * zStep;
-            gridVerts.push(xMin, y, z, xMax, y, z);
+    for (let latIdx = 0; latIdx < latCount; latIdx++) {
+        for (let lonIdx = 0; lonIdx < lonCount - 1; lonIdx++) {
+            const a = points[latIdx][lonIdx];
+            const b = points[latIdx][lonIdx + 1];
+            for (let i = 0; i < depthLevels; i++) {
+                const depth = Math.min(depthMax, i * zStep);
+                gridVerts.push(
+                    a.x,
+                    a.y,
+                    -depth,
+                    b.x,
+                    b.y,
+                    -depth
+                );
+            }
         }
     }
     //Create Grid
     const gridGeo = new THREE.BufferGeometry();
     const gridMat = new THREE.LineBasicMaterial({ color: gridBeneathColor, transparent: true, opacity: gridBeneathOpacity });
     gridGeo.setAttribute("position", new THREE.Float32BufferAttribute(gridVerts, 3))
-    const grid = new THREE.LineSegments(gridGeo, gridMat);
-    return grid
+    return new THREE.LineSegments(gridGeo, gridMat);
 }
 function getEarthquakeColor(depth: number, depthMaxGrid: number) {
     const t = Math.min(1, depth / depthMaxGrid);
@@ -627,7 +652,20 @@ export default function Map({ data }: { data: Earthquake[] }) {
 
         //Grid beneath
         grid = createGrid(depthMax)
-        world.add(grid)
+        if (grid) world.add(grid);
+
+        //3D EQ Points
+        sphereGeo = new THREE.SphereGeometry(1, 12, 10);
+        const vertexCount = sphereGeo.attributes.position.count;
+        const baseColors = new Float32Array(vertexCount * 3).fill(1);
+        sphereGeo.setAttribute("color", new THREE.BufferAttribute(baseColors, 3));
+        sphereMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
+        sphereMat.needsUpdate = true;
+        spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, earthquakePoints.length);
+        spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        pointsTo3D(earthquakePoints, earthquakePositions, earthquakeRadiuses, spheres, depthMax)
+        sphereMat.needsUpdate = true;
+        world.add(spheres)
 
         //Camera
         const camera = new THREE.PerspectiveCamera(camera_fov, width / height, camera_near, camera_far)
@@ -666,19 +704,6 @@ export default function Map({ data }: { data: Earthquake[] }) {
             cleanWalls(wallGeos, wallMeshes, edgeGeos, wallsGroup, elevImageData, elevMeta, depthMax)
             buildWalls(edgeGeos, wallsGroup, elevImageData, elevMeta, depthMax)
             world.add(wallsGroup);
-
-            //Update And 3D Points
-            sphereGeo = new THREE.SphereGeometry(1, 12, 10);
-            const vertexCount = sphereGeo.attributes.position.count;
-            const baseColors = new Float32Array(vertexCount * 3).fill(1);
-            sphereGeo.setAttribute("color", new THREE.BufferAttribute(baseColors, 3));
-            sphereMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
-            sphereMat.needsUpdate = true;
-            spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, earthquakePoints.length);
-            spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-            updateAnd3DPoints(earthquakePoints, earthquakePositions, earthquakeRadiuses, elevImageData, elevMeta, spheres, depthMax)
-            sphereMat.needsUpdate = true;
-            world.add(spheres)
         }
         )()
 
