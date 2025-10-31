@@ -498,7 +498,7 @@ function onPointerMove(e: PointerEvent, tooltipRef: React.RefObject<HTMLDivEleme
     tooltipRef.current.style.left = `${e.clientX + 12}px`;
     tooltipRef.current.style.top = `${e.clientY + 12}px`;
     tooltipRef.current.innerText =
-        `LAT/LON: ${quake.lat.toFixed(3)} / ${quake.lon.toFixed(3)}\nDEPTH: ${quake.depth.toFixed(1)} km\nM: ${(quake.amplitude ?? 0).toFixed(1)}`;
+        `LAT/LON: ${quake.lat.toFixed(3)} / ${quake.lon.toFixed(3)}\nDEPTH: ${quake.depth.toFixed(1)} km/M: ${(quake.amplitude ?? 0).toFixed(1)}`;
 }
 
 //
