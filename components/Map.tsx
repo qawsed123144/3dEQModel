@@ -104,7 +104,7 @@ async function loadStatellite(renderer: THREE.WebGLRenderer) {
 
     for (let tileY = tileYMin; tileY <= tileYMax; tileY++) {
         for (let tileX = tileXMin; tileX <= tileXMax; tileX++) {
-            const srcUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${satelliteDetail}/${tileY}/${tileX}`;
+            const srcUrl = `${satelliteUrlBase}/${satelliteDetail}/${tileY}/${tileX}`;
             const tileXOffset = (tileX - tileXMin) * tileSize
             const tileYOffset = (tileY - tileYMin) * tileSize
 
@@ -163,7 +163,7 @@ async function loadTerrarium() {
 
     for (let tileY = tileYMin; tileY <= tileYMax; tileY++) {
         for (let tileX = tileXMin; tileX <= tileXMax; tileX++) {
-            const srcUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${elevationDetail}/${tileX}/${tileY}.png`;
+            const srcUrl = `${terraianUrlBase}/${elevationDetail}/${tileX}/${tileY}.png`;
             const tileXOffset = (tileX - tileXMin) * tileSize
             const tileYOffset = (tileY - tileYMin) * tileSize
 
@@ -542,6 +542,8 @@ const elevationDetail = 5
 const segmentsAlong = 48
 const segmentsDepth = 24
 const segments = 96
+const satelliteUrlBase = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile"
+const terraianUrlBase = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium"
 
 const wallMeshes: THREE.Mesh[] = []
 const wallMat = new THREE.ShaderMaterial({
