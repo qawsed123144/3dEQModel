@@ -5,7 +5,6 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 import type { elevMeta, Earthquake, Bounds } from "@/types/type";
-import { overlay } from "three/tsl";
 
 function degreeToRadian(degree: number) {
     return degree * Math.PI / 180
@@ -35,7 +34,6 @@ function mapXYToLonLat(x: number, y: number) {
     const absY = mapOrigin.y + y;
     return xyToLonLat(absX, absY);
 }
-
 function lonLatToGlobalPixel(lon: number, lat: number, zoom: number, tileSize: number) {
     const n = Math.pow(2, zoom);
     const x = ((lon + 180) / 360) * n * tileSize;
@@ -58,7 +56,6 @@ function boundsToMapSize(BOUNDS: Bounds) {
     const mapHeight = Math.abs(ymax - ymin)
     return { mapWidth, mapHeight }
 }
-
 function elevationAtXY(x: number, y: number, elevImageData: ImageData | null, elevMeta: elevMeta | null, terrainExaggeration: number): number {
     if (!elevMeta || !elevImageData) return 0;
 
@@ -73,7 +70,6 @@ function elevationAtXY(x: number, y: number, elevImageData: ImageData | null, el
     const meters = (r * 256 + g + b / 256) - 32768;
     return meters / 1000 * terrainExaggeration;
 }
-
 function loadImage(srcUrl: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const image = new Image()
@@ -362,7 +358,7 @@ function pointsTo3D(points: Earthquake[], positions: number[], radiuses: number[
         positions.push(x, y, z)
         const color = getEarthquakeColor(point.depth, depthMaxGrid)
 
-        const radius = THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.1, 10.0)
+        const radius = THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.01, 12.0)
         radiuses.push(radius)
 
         dummy.position.set(x, y, z)
@@ -482,6 +478,29 @@ function getEarthquakeColor(depth: number, depthMaxGrid: number) {
 
     return new THREE.Color().setHSL(hue, saturation, lightness);
 }
+function onPointerMove(e: PointerEvent, tooltipRef: React.RefObject<HTMLDivElement | null>, raycaster: THREE.Raycaster, pointer: THREE.Vector2, camera: THREE.PerspectiveCamera, spheres: THREE.InstancedMesh, earthquakePoints: Earthquake[]) {
+    if (!tooltipRef.current) return;
+
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const intersections = raycaster.intersectObject(spheres, false);
+
+    if (intersections.length === 0) {
+        tooltipRef.current.style.display = "none";
+        return;
+    }
+
+    tooltipRef.current.style.display = "block";
+    const hit = intersections[0].instanceId ?? 0;
+    const quake = earthquakePoints[hit];
+    tooltipRef.current.style.left = `${e.clientX + 12}px`;
+    tooltipRef.current.style.top = `${e.clientY + 12}px`;
+    tooltipRef.current.innerText =
+        `M ${(quake.amplitude ?? 0).toFixed(1)}\n${quake.lat.toFixed(3)}, ${quake.lon.toFixed(3)}\nDepth ${quake.depth.toFixed(1)} km`;
+}
 
 //
 const planeMatColor = 0xffffff
@@ -570,6 +589,7 @@ export default function Map({ data }: { data: Earthquake[] }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const worldRef = useRef<THREE.Group | null>(null);
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
     const controlsUiRef = useRef<HTMLDivElement | null>(null);
 
     let grid: THREE.LineSegments | null = null;
@@ -581,10 +601,10 @@ export default function Map({ data }: { data: Earthquake[] }) {
     let wallsGroup: THREE.Group | null = null;
     const edgeGeos: THREE.BufferGeometry[] = []
     let rafId = 0
+    const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
 
     const [width, setWidth] = useState(800);
 
-    const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
     const earthquakePoints = useMemo(() => (data), [data]);
     const depthMax = Math.max(350, ...earthquakePoints.map((p) => p.depth));
 
@@ -672,6 +692,15 @@ export default function Map({ data }: { data: Earthquake[] }) {
         camera.position.set(mapWidth * 0.5, -mapHeight * 0.8, Math.max(mapWidth, mapHeight) * 1.2)
         camera.lookAt(new THREE.Vector3(mapWidth * 0.5, mapHeight * 0.5, 0));
         camera.up.set(0, 0, 1)
+
+        //EQ Point Tooltip
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        renderer.domElement.addEventListener("pointermove", (event) => {
+            if (!tooltipRef.current || !spheres) return
+            onPointerMove(event, tooltipRef, raycaster, pointer, camera, spheres, earthquakePoints)
+        }
+        );
 
         //Controls: 軌道控制器
         const controls = new OrbitControls(camera, renderer.domElement)
@@ -770,6 +799,7 @@ export default function Map({ data }: { data: Earthquake[] }) {
         <>
             <div ref={containerRef} className="container">
                 <canvas ref={canvasRef} className="canvas" />
+                <div ref={tooltipRef} className="tooltip" />
                 <div ref={controlsUiRef} className="controlsUi" />
             </div>
 
@@ -783,6 +813,20 @@ export default function Map({ data }: { data: Earthquake[] }) {
                     display: block;
                     width: 100%;
                     height: 100%;
+                }
+                
+                .tooltip {
+                    display: none;
+                    position: fixed;
+                    z-index: 10;
+                    padding: 6px 8px;
+                    pointer-events: none;
+
+                    font-size: 12px;
+                    white-space: pre;
+                    color: #fff;
+                    background: rgba(0, 0, 0, 0.75);
+                    border-radius: 4px;
                 }
                 
                 .controlsUi {
