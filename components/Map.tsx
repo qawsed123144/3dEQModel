@@ -362,7 +362,7 @@ function pointsTo3D(points: Earthquake[], positions: number[], radiuses: number[
         positions.push(x, y, z)
         const color = getEarthquakeColor(point.depth, depthMaxGrid)
 
-        const radius = THREE.MathUtils.mapLinear(point.amplitude, 2.5, 7.0, 0.8, 4.0)
+        const radius = THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.1, 10.0)
         radiuses.push(radius)
 
         dummy.position.set(x, y, z)
