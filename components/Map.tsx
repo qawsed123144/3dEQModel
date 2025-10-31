@@ -347,8 +347,7 @@ function cleanWalls(wallGeos: THREE.BufferGeometry[], wallMeshes: THREE.Mesh[], 
     polylineBottomX(0, elevImageData, elevMeta, wallGroup, edgeGeos, depthRange,);
     polylineBottomY(0, elevImageData, elevMeta, wallGroup, edgeGeos, depthRange);
 }
-function pointsTo3D(points: Earthquake[], positions: number[], radiuses: number[], spheres: THREE.InstancedMesh, depthMaxGrid: number
-) {
+function pointsTo3D(points: Earthquake[], positions: number[], radiuses: number[], spheres: THREE.InstancedMesh, depthMaxGrid: number) {
     const dummy = new THREE.Object3D();
 
     points.forEach((point, index) => {
@@ -499,7 +498,7 @@ function onPointerMove(e: PointerEvent, tooltipRef: React.RefObject<HTMLDivEleme
     tooltipRef.current.style.left = `${e.clientX + 12}px`;
     tooltipRef.current.style.top = `${e.clientY + 12}px`;
     tooltipRef.current.innerText =
-        `M: ${(quake.amplitude ?? 0).toFixed(1)}\nLAT/LON: ${quake.lat.toFixed(3)}, ${quake.lon.toFixed(3)}\nDEPTH: ${quake.depth.toFixed(1)} km`;
+        `LAT/LON: ${quake.lat.toFixed(3)} / ${quake.lon.toFixed(3)}\nDEPTH: ${quake.depth.toFixed(1)} km\nM: ${(quake.amplitude ?? 0).toFixed(1)}`;
 }
 
 //
