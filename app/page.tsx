@@ -9,12 +9,7 @@ function featureToPoint(feature: GeoJSONFeature): Earthquake {
   const props = feature.properties;
   const depth = props.depth_km
   const magnitude = props.magnitude
-  const time = (() => {
-    const iso = props.time.includes("T") ? props.time : props.time.replace(" ", "T");
-    const normalized = iso.endsWith("Z") ? iso : `${iso}Z`;
-    const parsed = new Date(normalized);
-    return parsed;
-  })()
+  const time = props.time
 
   const point: Earthquake = { lat, lon, depth: depth, amplitude: magnitude, time };
   return point;

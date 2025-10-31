@@ -3,7 +3,7 @@ export type Earthquake = {
     lon: number;
     depth: number;
     amplitude: number;
-    time: Date;
+    time: string;
 };
 
 export type Bounds = {
