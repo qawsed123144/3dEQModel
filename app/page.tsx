@@ -1,6 +1,6 @@
 'use client'
 import Map from "@/components/Map";
-import testData from "./data/testData.json";
+import testData from "@/data/testData.json";
 import type { Earthquake, GeoJSONFeature, GeoJSONCollection } from "@/types/type";
 
 function featureToPoint(feature: GeoJSONFeature): Earthquake {

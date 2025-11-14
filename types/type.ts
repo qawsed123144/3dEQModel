@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 export type Earthquake = {
     lat: number;
     lon: number;
@@ -13,7 +15,7 @@ export type Bounds = {
     latMax: number;
 }
 
-export type elevMeta = {
+export type ElevMeta = {
     tileXMin: number;
     tileYMin: number;
     tileSize: number;
@@ -22,6 +24,39 @@ export type elevMeta = {
     width: number;
     height: number;
     zoom: number
+}
+
+//Props
+export type MapProps = {
+    data: Earthquake[];
+}
+export type ThreeSetupProps = {
+    canvasRef: React.RefObject<HTMLCanvasElement | null>,
+}
+
+export type TerrianProps = {
+    rendererRef: React.RefObject<THREE.WebGLRenderer | null>;
+    worldRef: React.RefObject<THREE.Group | null>;
+    depthMax: number;
+}
+
+export type EQPointsProps = {
+    worldRef: React.RefObject<THREE.Group | null>;
+    cameraRef: React.RefObject<THREE.PerspectiveCamera | null>;
+    rendererRef: React.RefObject<THREE.WebGLRenderer | null>;
+    tooltipRef: React.RefObject<HTMLDivElement | null>;
+    EQData: Earthquake[];
+    depthMax: number;
+}
+
+export type GuiControlsProps = {
+    worldRef: React.RefObject<THREE.Group | null>;
+    controlsUiRef: React.RefObject<HTMLDivElement | null>;
+    scaleSet: {
+        scaleX: number;
+        scaleY: number;
+        scaleZ: number;
+    }
 }
 
 //test data
