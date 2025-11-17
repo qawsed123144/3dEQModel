@@ -1,4 +1,5 @@
 {
     "editor.formatOnSave": true,
-    "editor.fontSize": 16
+    "editor.fontSize": 16,
+    "chatgpt.openOnStartup": true
 }

@@ -5,7 +5,7 @@ import { mapWidth, mapHeight, loadStatellite, loadTerrarium, terrariumToPlane, c
 import { planeMatColor } from "@/constants/constants";
 import type { TerrianProps } from "@/types/type";
 
-export function useTerrain({ rendererRef, worldRef, depthMax }: TerrianProps) {
+export function useTerrain({ worldRef, rendererRef, depthMax }: TerrianProps) {
     const textureRef = useRef<THREE.Texture | null>(null);
 
     useEffect(() => {

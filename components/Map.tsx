@@ -21,7 +21,7 @@ export default function Map({ data }: MapProps) {
 
     //Hooks
     const { worldRef, sceneRef, cameraRef, rendererRef } = useThreeSetup({ canvasRef });
-    useTerrain({ rendererRef, worldRef, depthMax });
+    useTerrain({ worldRef, rendererRef, depthMax });
     useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax });
     useGuiControls({ worldRef, controlsUiRef, scaleSet });
 

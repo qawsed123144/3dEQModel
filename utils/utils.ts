@@ -502,7 +502,7 @@ export function createGrid(depthMax: number): THREE.LineSegments | null {
     }
     //Create Grid
     const gridGeo = new THREE.BufferGeometry();
-    const gridMat = new THREE.LineBasicMaterial({ color: con.gridBeneathColor, transparent: true, opacity: con.gridBeneathOpacity });
+    const gridMat = new THREE.LineBasicMaterial({ color: con.gridBeneathColor, transparent: true, opacity: con.gridBeneathOpacity, depthTest: true, depthWrite: false });
     gridGeo.setAttribute("position", new THREE.Float32BufferAttribute(gridVerts, 3))
     return new THREE.LineSegments(gridGeo, gridMat);
 }
