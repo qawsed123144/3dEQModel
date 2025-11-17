@@ -20,6 +20,7 @@ export const segmentsDepth = 24
 export const segments = 96
 export const satelliteUrlBase = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile"
 export const terraianUrlBase = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium"
+export const tileSize = 256
 
 //Styles Constants
 export const width = 800

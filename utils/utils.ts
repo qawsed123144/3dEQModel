@@ -3,45 +3,13 @@ import * as con from "@/constants/constants";
 
 import type { Bounds, ElevMeta, Earthquake } from "@/types/type";
 
-const mapOrigin = lonLatToXY(con.bounds.lonMin, con.bounds.latMin);
+// Computed constants
 export const { mapWidth, mapHeight } = boundsToMapSize(con.bounds)
 const corners = [
     [0, 0], [mapWidth, 0], [0, mapHeight], [mapWidth, mapHeight]
 ]
-const edgeMat = new THREE.LineBasicMaterial({ color: con.edgeColor, opacity: con.edgeOpacity, transparent: true });
 
-const wallMat = new THREE.ShaderMaterial({
-    uniforms: {
-        uColorTop: { value: new THREE.Color(con.wallColorTop) },
-        uColorBottom: { value: new THREE.Color(con.wallColorBottom) },
-        uOpacityTop: { value: con.wallOpacityTop },
-        uOpacityBottom: { value: con.wallOpacityBottom },
-    },
-    vertexShader: `
-                attribute float aT;
-                varying float vT;
-                void main() {
-                    vT = aT;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-    fragmentShader: `
-                precision mediump float;
-                varying float vT;
-                uniform vec3 uColorTop;
-                uniform vec3 uColorBottom;
-                uniform float uOpacityTop;
-                uniform float uOpacityBottom;
-                void main() {
-                    vec3 color = mix(uColorTop, uColorBottom, vT);
-                    float alpha = mix(uOpacityTop, uOpacityBottom, vT);
-                    gl_FragColor = vec4(color, alpha);
-                }
-            `,
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-});
+// Compute functions
 function degreeToRadian(degree: number) {
     return degree * Math.PI / 180
 }
@@ -54,36 +22,10 @@ function lonLatToXY(lon: number, lat: number) {
     const y = R * Math.log(Math.tan(Math.PI / 4 + radianY / 2));
     return { x, y }
 }
-function xyToLonLat(x: number, y: number) {
-    const R = con.EARTH_RADIUS
-
-    const lon = (x / R) * (180 / Math.PI)
-    const lat = (Math.atan(Math.sinh(y / R)) * 180) / Math.PI;
-    return { lon, lat }
-}
 function lonLatToMapXY(lon: number, lat: number) {
     const { x, y } = lonLatToXY(lon, lat);
-    return { x: x - mapOrigin.x, y: y - mapOrigin.y };
-}
-function mapXYToLonLat(x: number, y: number) {
-    const absX = mapOrigin.x + x;
-    const absY = mapOrigin.y + y;
-    return xyToLonLat(absX, absY);
-}
-function lonLatToGlobalPixel(lon: number, lat: number, zoom: number, tileSize: number) {
-    const n = Math.pow(2, zoom);
-    const x = ((lon + 180) / 360) * n * tileSize;
-    const radianLat = degreeToRadian(lat);
-    const y = ((1 - Math.log(Math.tan(radianLat) + 1 / Math.cos(radianLat)) / Math.PI) / 2) * n * tileSize;
-    return { x, y };
-}
-function lonLatToTileIdx(lon: number, lat: number, zoom: number) {
-    const numTiles = Math.pow(2, zoom);
-    const tileXIdx = Math.floor((lon + 180) / 360 * numTiles);
-    const tileYIdx = Math.floor(
-        ((1 - Math.log(Math.tan(degreeToRadian(lat)) + 1 / Math.cos(degreeToRadian(lat))) / Math.PI) / 2) * numTiles
-    );
-    return { tileXIdx, tileYIdx };
+    const { x: mapMinX, y: mapMinY } = lonLatToXY(con.bounds.lonMin, con.bounds.latMin);
+    return { x: x - mapMinX, y: y - mapMinY };
 }
 function boundsToMapSize(BOUNDS: Bounds) {
     const { x: xmin, y: ymin } = lonLatToXY(BOUNDS.lonMin, BOUNDS.latMin);
@@ -92,13 +34,39 @@ function boundsToMapSize(BOUNDS: Bounds) {
     const mapHeight = Math.abs(ymax - ymin)
     return { mapWidth, mapHeight }
 }
+function lonLatToTileIdx(lon: number, lat: number, zoom: number) {
+    const n = Math.pow(2, zoom);
+    const tileXIdx = Math.floor((lon + 180) / 360 * n);
+    const tileYIdx = Math.floor(
+        ((1 - Math.log(Math.tan(degreeToRadian(lat)) + 1 / Math.cos(degreeToRadian(lat))) / Math.PI) / 2) * n
+    );
+    return { tileXIdx, tileYIdx };
+}
+function lonLatToGlobalPixel(lon: number, lat: number, zoom: number) {
+    const n = Math.pow(2, zoom);
+    const x = ((lon + 180) / 360) * n * con.tileSize;
+    const radianY = degreeToRadian(lat);
+    const y = ((1 - Math.log(Math.tan(Math.PI / 4 + radianY / 2)) / Math.PI) / 2) * n * con.tileSize;
+    return { x, y };
+}
+function xyToLonLat(x: number, y: number) {
+    const R = con.EARTH_RADIUS
+
+    const lon = (x / R) * (180 / Math.PI)
+    const lat = (Math.atan(Math.sinh(y / R)) * 180) / Math.PI;
+    return { lon, lat }
+}
+
 function elevationAtXY(x: number, y: number, elevImageData: ImageData | null, elevMeta: ElevMeta | null, terrainExaggeration: number): number {
     if (!elevMeta || !elevImageData) return 0;
 
-    const { lon, lat } = mapXYToLonLat(x, y);
-    const gp = lonLatToGlobalPixel(lon, lat, elevMeta.zoom, elevMeta.tileSize);
-    const xM = Math.max(0, Math.min(elevMeta.width - 1, Math.floor(gp.x - elevMeta.tileXMin * elevMeta.tileSize)));
-    const yM = Math.max(0, Math.min(elevMeta.height - 1, Math.floor(gp.y - elevMeta.tileYMin * elevMeta.tileSize)));
+    const { x: mapMinX, y: mapMinY } = lonLatToXY(con.bounds.lonMin, con.bounds.latMin);
+    const absX = mapMinX + x;
+    const absY = mapMinY + y;
+    const { lon, lat } = xyToLonLat(absX, absY);
+    const pixel = lonLatToGlobalPixel(lon, lat, elevMeta.zoom);
+    const xM = Math.max(0, Math.min(elevMeta.width - 1, Math.floor(pixel.x - elevMeta.tileXMin * con.tileSize)));
+    const yM = Math.max(0, Math.min(elevMeta.height - 1, Math.floor(pixel.y - elevMeta.tileYMin * con.tileSize)));
     const idx = (yM * elevMeta.width + xM) * 4;
     const r = elevImageData.data[idx + 0];
     const g = elevImageData.data[idx + 1];
@@ -132,34 +100,33 @@ function prepareLoadTiles(detail: number) {
 }
 export async function loadStatellite(renderer: THREE.WebGLRenderer) {
     const { canvas, context, tileXMin, tileXMax, tileYMin, tileYMax, loadImagePromises } = prepareLoadTiles(con.satelliteDetail)
-    const tileSize = 256
 
-    canvas.width = (tileXMax - tileXMin + 1) * tileSize
-    canvas.height = (tileYMax - tileYMin + 1) * tileSize
+    canvas.width = (tileXMax - tileXMin + 1) * con.tileSize
+    canvas.height = (tileYMax - tileYMin + 1) * con.tileSize
 
     for (let tileY = tileYMin; tileY <= tileYMax; tileY++) {
         for (let tileX = tileXMin; tileX <= tileXMax; tileX++) {
             const srcUrl = `${con.satelliteUrlBase}/${con.satelliteDetail}/${tileY}/${tileX}`;
-            const tileXOffset = (tileX - tileXMin) * tileSize
-            const tileYOffset = (tileY - tileYMin) * tileSize
+            const tileXOffset = (tileX - tileXMin) * con.tileSize
+            const tileYOffset = (tileY - tileYMin) * con.tileSize
 
             loadImagePromises.push(
                 loadImage(srcUrl).then((image) => {
-                    context.drawImage(image, tileXOffset, tileYOffset, tileSize, tileSize)
+                    context.drawImage(image, tileXOffset, tileYOffset, con.tileSize, con.tileSize)
                 })
                     .catch(() => {
                         context.fillStyle = con.statelliteTileDefultColor;
-                        context.fillRect(tileXOffset, tileYOffset, tileSize, tileSize)
+                        context.fillRect(tileXOffset, tileYOffset, con.tileSize, con.tileSize)
                     })
             )
 
         }
     }
     await Promise.all(loadImagePromises)
-    const topLeftPx = lonLatToGlobalPixel(con.bounds.lonMin, con.bounds.latMax, con.satelliteDetail, tileSize);
-    const bottomRightPx = lonLatToGlobalPixel(con.bounds.lonMax, con.bounds.latMin, con.satelliteDetail, tileSize);
-    const cropX = Math.round(topLeftPx.x - tileXMin * tileSize);
-    const cropY = Math.round(topLeftPx.y - tileYMin * tileSize);
+    const topLeftPx = lonLatToGlobalPixel(con.bounds.lonMin, con.bounds.latMax, con.satelliteDetail);
+    const bottomRightPx = lonLatToGlobalPixel(con.bounds.lonMax, con.bounds.latMin, con.satelliteDetail);
+    const cropX = Math.round(topLeftPx.x - tileXMin * con.tileSize);
+    const cropY = Math.round(topLeftPx.y - tileYMin * con.tileSize);
     const cropWidth = Math.round(bottomRightPx.x - topLeftPx.x);
     const cropHeight = Math.round(bottomRightPx.y - topLeftPx.y);
     let finalCanvas = canvas;
@@ -192,23 +159,22 @@ export async function loadTerrarium() {
     const cols = tileXMax - tileXMin + 1
     const rows = tileYMax - tileYMin + 1
 
-    const tileSize = 256
-    canvas.width = (tileXMax - tileXMin + 1) * tileSize;
-    canvas.height = (tileYMax - tileYMin + 1) * tileSize;
+    canvas.width = (tileXMax - tileXMin + 1) * con.tileSize;
+    canvas.height = (tileYMax - tileYMin + 1) * con.tileSize;
 
     for (let tileY = tileYMin; tileY <= tileYMax; tileY++) {
         for (let tileX = tileXMin; tileX <= tileXMax; tileX++) {
             const srcUrl = `${con.terraianUrlBase}/${con.elevationDetail}/${tileX}/${tileY}.png`;
-            const tileXOffset = (tileX - tileXMin) * tileSize
-            const tileYOffset = (tileY - tileYMin) * tileSize
+            const tileXOffset = (tileX - tileXMin) * con.tileSize
+            const tileYOffset = (tileY - tileYMin) * con.tileSize
 
             loadImagePromises.push(
                 loadImage(srcUrl).then((image) => {
-                    context.drawImage(image, tileXOffset, tileYOffset, tileSize, tileSize)
+                    context.drawImage(image, tileXOffset, tileYOffset, con.tileSize, con.tileSize)
                 })
                     .catch(() => {
                         context.fillStyle = con.terrariumTileDefultColor;
-                        context.fillRect(tileXOffset, tileYOffset, tileSize, tileSize)
+                        context.fillRect(tileXOffset, tileYOffset, con.tileSize, con.tileSize)
                     })
             )
         }
@@ -216,11 +182,10 @@ export async function loadTerrarium() {
     await Promise.all(loadImagePromises)
 
     const elevImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const elevMeta = { tileXMin, tileYMin, tileSize, cols, rows, width: canvas.width, height: canvas.height, zoom: con.elevationDetail };
+    const elevMeta = { tileXMin, tileYMin, cols, rows, width: canvas.width, height: canvas.height, zoom: con.elevationDetail };
 
     return { elevImageData, elevMeta }
 }
-
 function buildWallX(xConst: number, elevImageData: ImageData | null, elevMeta: ElevMeta | null, depthRange: number, wallGroup: THREE.Group, wallGeos: THREE.BufferGeometry[], wallMeshes: THREE.Mesh[]) {
     const positions = [];
     const aT = [];
@@ -291,6 +256,39 @@ function buildWallY(yConst: number, elevImageData: ImageData | null, elevMeta: E
     wallGroup.add(mesh);
     wallMeshes.push(mesh);
 }
+const edgeMat = new THREE.LineBasicMaterial({ color: con.edgeColor, opacity: con.edgeOpacity, transparent: true });
+const wallMat = new THREE.ShaderMaterial({
+    uniforms: {
+        uColorTop: { value: new THREE.Color(con.wallColorTop) },
+        uColorBottom: { value: new THREE.Color(con.wallColorBottom) },
+        uOpacityTop: { value: con.wallOpacityTop },
+        uOpacityBottom: { value: con.wallOpacityBottom },
+    },
+    vertexShader: `
+                attribute float aT;
+                varying float vT;
+                void main() {
+                    vT = aT;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+    fragmentShader: `
+                precision mediump float;
+                varying float vT;
+                uniform vec3 uColorTop;
+                uniform vec3 uColorBottom;
+                uniform float uOpacityTop;
+                uniform float uOpacityBottom;
+                void main() {
+                    vec3 color = mix(uColorTop, uColorBottom, vT);
+                    float alpha = mix(uOpacityTop, uOpacityBottom, vT);
+                    gl_FragColor = vec4(color, alpha);
+                }
+            `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+});
 function polylineTopX(xConst: number, elevImageData: ImageData | null, elevMeta: ElevMeta | null, wallGroup: THREE.Group, wallGeos: THREE.BufferGeometry[], edgeGeos: THREE.BufferGeometry[]) {
     const positions: number[] = [];
     for (let i = 0; i <= con.segments; i++) {

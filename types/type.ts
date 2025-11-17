@@ -18,7 +18,6 @@ export type Bounds = {
 export type ElevMeta = {
     tileXMin: number;
     tileYMin: number;
-    tileSize: number;
     cols: number;
     rows: number;
     width: number;
