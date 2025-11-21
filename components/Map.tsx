@@ -17,12 +17,12 @@ export default function Map({ data }: MapProps) {
     //Vars
     const scaleSet = { scaleX: 1, scaleY: 1, scaleZ: 1 }
     const EQData = useMemo(() => (data), [data]);
-    const depthMax = Math.max(350, ...EQData.map((p) => p.depth));
+    const depthRange = Math.max(350, ...EQData.map((p) => p.depth));
 
     //Hooks
     const { worldRef, sceneRef, cameraRef, rendererRef } = useThreeSetup({ canvasRef });
-    useTerrain({ worldRef, rendererRef, depthMax });
-    useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax });
+    useTerrain({ worldRef, rendererRef, depthRange });
+    useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax: depthRange });
     useGuiControls({ worldRef, controlsUiRef, scaleSet });
 
     //Check Init

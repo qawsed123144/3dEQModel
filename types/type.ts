@@ -16,29 +16,58 @@ export type Bounds = {
 }
 
 export type ElevMeta = {
-    tileXMin: number;
-    tileYMin: number;
-    cols: number;
-    rows: number;
     width: number;
     height: number;
-    zoom: number
+    zoom: number;
 }
 
 //Props
+export type elevationAtXYProps = {
+    x: number,
+    y: number,
+    elevImageData: ImageData | null,
+    elevMeta: ElevMeta | null,
+    terrainExaggeration: number
+}
+export type buildWallProps = {
+    alongConst: number,
+    axis: 'x' | 'y'
+    elevImageData: ImageData | null,
+    elevMeta: ElevMeta | null,
+    depthRange: number,
+    wallsGroup: THREE.Group,
+}
+export type buildWallsProps = {
+    elevImageData: ImageData | null,
+    elevMeta: ElevMeta | null,
+    depthRange: number,
+    wallsGroup: THREE.Group,
+}
+export type terrainToPlaneProps = {
+    elevImageData: ImageData | null,
+    elevMeta: ElevMeta | null,
+    planeGeo: THREE.PlaneGeometry,
+}
+export type onPointerMoveProps = {
+    points: Earthquake[];
+    spheres: THREE.InstancedMesh;
+    pointer: THREE.Vector2;
+    raycaster: THREE.Raycaster;
+    tooltipRef: React.RefObject<HTMLDivElement | null>;
+    camera: THREE.PerspectiveCamera;
+}
+
 export type MapProps = {
     data: Earthquake[];
 }
 export type ThreeSetupProps = {
     canvasRef: React.RefObject<HTMLCanvasElement | null>,
 }
-
 export type TerrianProps = {
     rendererRef: React.RefObject<THREE.WebGLRenderer | null>;
     worldRef: React.RefObject<THREE.Group | null>;
-    depthMax: number;
+    depthRange: number;
 }
-
 export type EQPointsProps = {
     worldRef: React.RefObject<THREE.Group | null>;
     cameraRef: React.RefObject<THREE.PerspectiveCamera | null>;
@@ -47,7 +76,6 @@ export type EQPointsProps = {
     EQData: Earthquake[];
     depthMax: number;
 }
-
 export type GuiControlsProps = {
     worldRef: React.RefObject<THREE.Group | null>;
     controlsUiRef: React.RefObject<HTMLDivElement | null>;

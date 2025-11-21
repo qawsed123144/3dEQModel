@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-import { mapWidth, mapHeight, loadStatellite, loadTerrarium, terrariumToPlane, cleanWalls, buildWalls } from "@/utils/utils";
+import { mapWidth, mapHeight, loadStatellite, loadTerrarium, terrainToPlane, cleanWalls, buildWalls } from "@/utils/utils";
 import { planeMatColor } from "@/constants/constants";
 import type { TerrianProps } from "@/types/type";
 
-export function useTerrain({ worldRef, rendererRef, depthMax }: TerrianProps) {
+export function useTerrain({ worldRef, rendererRef, depthRange }: TerrianProps) {
     const textureRef = useRef<THREE.Texture | null>(null);
 
     useEffect(() => {
@@ -38,20 +38,16 @@ export function useTerrain({ worldRef, rendererRef, depthMax }: TerrianProps) {
         (async () => {
             // Load Terrarium then Update
             const { elevImageData, elevMeta } = await loadTerrarium();
-            terrariumToPlane(elevImageData, elevMeta, planeGeo)
+            terrainToPlane({ elevImageData, elevMeta, planeGeo })
 
             //Wall
             const wallsGroup = new THREE.Group();
-            const wallGeos: THREE.BufferGeometry[] = [];
-            const wallMeshes: THREE.Mesh[] = [];
-            const edgeGeos: THREE.BufferGeometry[] = [];
-            cleanWalls(wallGeos, wallMeshes, edgeGeos, wallsGroup, elevImageData, elevMeta, depthMax)
-            buildWalls(edgeGeos, wallsGroup, elevImageData, elevMeta, depthMax)
+            cleanWalls(wallsGroup)
+            buildWalls({ elevImageData, elevMeta, depthRange, wallsGroup })
             if (worldRef.current) {
                 worldRef.current.add(wallsGroup);
             }
-        }
-        )()
+        })()
 
         //Cleanup
         return () => {
@@ -59,5 +55,5 @@ export function useTerrain({ worldRef, rendererRef, depthMax }: TerrianProps) {
             planeMat.map?.dispose();
             planeGeo.dispose();
         };
-    }, [rendererRef.current, worldRef.current, depthMax]);
+    }, [rendererRef.current, worldRef.current, depthRange]);
 }
