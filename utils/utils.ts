@@ -99,14 +99,17 @@ function prepareLoadTiles(detail: number) {
 
     return { canvas, context, tileXMin, tileXMax, tileYMin, tileYMax, cols, rows, cropX, cropY, cropWidth, cropHeight }
 }
-export async function loadStatellite(renderer: THREE.WebGLRenderer) {
+export async function loadStatellite(renderer: THREE.WebGLRenderer, token?: string) {
     const { canvas, context, tileXMin, tileXMax, tileYMin, tileYMax, cropX, cropY, cropWidth, cropHeight } = prepareLoadTiles(con.satelliteDetail)
     const loadImagePromises: Promise<void>[] = []
 
     // Canvas draw
     for (let tileY = tileYMin; tileY <= tileYMax; tileY++) {
         for (let tileX = tileXMin; tileX <= tileXMax; tileX++) {
-            const srcUrl = `${con.satelliteUrlBase}/${con.satelliteDetail}/${tileY}/${tileX}`;
+            let srcUrl = `${con.satelliteUrlBase}/${con.satelliteDetail}/${tileY}/${tileX}`;
+            if (token) {
+                srcUrl = `${con.satelliteUrlBase}/${con.satelliteDetail}/${tileX}/${tileY}?access_token=${token}`;
+            }
             const tileXOffset = (tileX - tileXMin) * con.tileSize
             const tileYOffset = (tileY - tileYMin) * con.tileSize
 

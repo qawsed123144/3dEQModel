@@ -17,7 +17,7 @@ export function useTerrain({ worldRef, rendererRef, depthRange }: TerrianProps) 
             color: planeMatColor,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.7
+            opacity: 0.8
         })
         const plane = new THREE.Mesh(planeGeo, planeMat)
         plane.position.set(mapWidth * 0.5, mapHeight * 0.5, 0)
