@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 import { mapWidth, mapHeight, loadStatellite, loadTerrarium, terrainToPlane, cleanWalls, buildWalls } from "@/utils/utils";
-import { planeMatColor } from "@/constants/constants";
+import { planeMatColor, planeMatOpacity } from "@/constants/constants";
 import type { TerrianProps } from "@/types/type";
 
 export function useTerrain({ worldRef, rendererRef, depthRange }: TerrianProps) {
@@ -17,7 +17,7 @@ export function useTerrain({ worldRef, rendererRef, depthRange }: TerrianProps) 
             color: planeMatColor,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.8
+            opacity: planeMatOpacity
         })
         const plane = new THREE.Mesh(planeGeo, planeMat)
         plane.position.set(mapWidth * 0.5, mapHeight * 0.5, 0)

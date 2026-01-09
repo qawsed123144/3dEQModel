@@ -1,7 +1,9 @@
 'use client'
 import Map from "@/components/Map";
-import testData from "@/data/testData.json";
 import type { Earthquake, GeoJSONFeature, GeoJSONCollection } from "@/types/type";
+import testData from "@/data/testData.json";
+import reportData from "@/data/reportData.json";
+import gdmScatalogData from "@/data/GDMScatalog.json";
 
 function featureToPoint(feature: GeoJSONFeature): Earthquake {
   const [lon, lat] = feature.geometry.coordinates;
@@ -15,6 +17,12 @@ function featureToPoint(feature: GeoJSONFeature): Earthquake {
   return point;
 }
 const parsedTestData = (testData as GeoJSONCollection).features
+  .map(featureToPoint)
+  .filter((p): p is Earthquake => p !== null);
+const parsedReportData = (reportData as GeoJSONCollection).features
+  .map(featureToPoint)
+  .filter((p): p is Earthquake => p !== null);
+const parsedGdmScatalogData = (gdmScatalogData as GeoJSONCollection).features
   .map(featureToPoint)
   .filter((p): p is Earthquake => p !== null);
 
@@ -32,6 +40,16 @@ export default function Home() {
             </div>
             <div className="3DPanel">
               <Map data={parsedTestData} />
+            </div>
+          </section>
+          <section className="section">
+            <div className="3DPanel">
+              <Map data={parsedReportData} />
+            </div>
+          </section>
+          <section className="section">
+            <div className="3DPanel">
+              <Map data={parsedGdmScatalogData} />
             </div>
           </section>
 

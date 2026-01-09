@@ -37,6 +37,7 @@ export const width = 800
 export const height = 560
 
 export const planeMatColor = 0xffffff
+export const planeMatOpacity = 0.45
 export const background = 0xf8fafc
 export const statelliteTileDefultColor = "0xd6d3d1"
 export const terrariumTileDefultColor = "rgb(128,128,128)"
@@ -74,4 +75,4 @@ export const wallMat = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
 });
 export const gridBeneathColor = 0xcccccc
-export const gridBeneathOpacity = 0.35;
+export const gridBeneathOpacity = 0.25;
