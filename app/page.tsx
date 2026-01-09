@@ -1,10 +1,26 @@
 'use client'
+import { useState, useEffect } from "react";
+
 import Map from "@/components/Map";
-import type { Earthquake, GeoJSONFeature, GeoJSONCollection } from "@/types/type";
+import type { Earthquake, GeoJSONFeature, GeoJSONCollection, EarthquakeApi } from "@/types/type";
 import testData from "@/data/testData.json";
 import reportData from "@/data/reportData.json";
 import gdmScatalogData from "@/data/GDMScatalog.json";
 
+//import from db api
+async function fetchDataset(name: string): Promise<Earthquake[]> {
+  const res = await fetch(`/api/earthquakes?dataset=${encodeURIComponent(name)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const rows: EarthquakeApi[] = await res.json();
+  return rows.map((row) => ({
+    lat: row.lat,
+    lon: row.lon,
+    depth: row.depth_km ?? 0,
+    amplitude: row.magnitude ?? 0,
+    time: row.time,
+  }));
+}
+// import from json data
 function featureToPoint(feature: GeoJSONFeature): Earthquake {
   const [lon, lat] = feature.geometry.coordinates;
 
@@ -27,6 +43,38 @@ const parsedGdmScatalogData = (gdmScatalogData as GeoJSONCollection).features
   .filter((p): p is Earthquake => p !== null);
 
 export default function Home() {
+  //import from db api
+  const [testData, setTestData] = useState<Earthquake[]>([]);
+  const [reportData, setReportData] = useState<Earthquake[]>([]);
+  const [gdmData, setGdmData] = useState<Earthquake[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
+      try {
+        const [fetchedTestData, fetchedReportData, fetchedGdmData] = await Promise.all([
+          fetchDataset("testData.json"),
+          fetchDataset("reportData.json"),
+          fetchDataset("GDMScatalog.json"),
+        ]);
+        if (!cancelled) {
+          setTestData(fetchedTestData);
+          setReportData(fetchedReportData);
+          setGdmData(fetchedGdmData);
+        }
+      }
+      catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Unknown error");
+        }
+      }
+    }
+    loadData();
+    return () => {
+      cancelled = true;
+    }
+  }, [])
+  //
 
   return (
     <>
@@ -52,6 +100,40 @@ export default function Home() {
               <Map data={parsedGdmScatalogData} />
             </div>
           </section>
+
+          {/* import from db api */}
+          <section className="section">
+            <div className="sectionHeader">
+              <div className="sectionTitle">3D 地震圖 Test</div>
+              <div className="sectionSubtitle">testData.json</div>
+            </div>
+            <div className="3DPanel">
+              <Map data={testData} />
+            </div>
+          </section>
+
+          <section className="section">
+            <div className="sectionHeader">
+              <div className="sectionTitle">Report</div>
+              <div className="sectionSubtitle">reportData.json</div>
+            </div>
+            <div className="3DPanel">
+              <Map data={reportData} />
+            </div>
+          </section>
+
+          <section className="section">
+            <div className="sectionHeader">
+              <div className="sectionTitle">GDMS Catalog</div>
+              <div className="sectionSubtitle">GDMScatalog.json</div>
+            </div>
+            <div className="3DPanel">
+              <Map data={gdmData} />
+            </div>
+          </section>
+
+          {error && <div style={{ color: "red" }}>API error: {error}</div>}
+          {/*  */}
 
         </main>
       </div>

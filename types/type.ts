@@ -107,3 +107,11 @@ export type GeoJSONCollection = {
     type: "FeatureCollection";
     features: GeoJSONFeature[];
 };
+
+export type EarthquakeApi = {
+    lat: number;
+    lon: number;
+    depth_km: number | null;
+    magnitude: number | null;
+    time: string;
+};
