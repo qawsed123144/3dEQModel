@@ -102,7 +102,7 @@ export default function Home() {
           </section>
 
           {/* import from db api */}
-          <section className="section">
+          {/* <section className="section">
             <div className="sectionHeader">
               <div className="sectionTitle">3D 地震圖 Test</div>
               <div className="sectionSubtitle">testData.json</div>
@@ -130,7 +130,7 @@ export default function Home() {
             <div className="3DPanel">
               <Map data={gdmData} />
             </div>
-          </section>
+          </section> */}
 
           {error && <div style={{ color: "red" }}>API error: {error}</div>}
           {/*  */}
