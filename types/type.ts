@@ -59,6 +59,7 @@ export type onPointerMoveProps = {
 
 export type MapProps = {
     data: Earthquake[];
+    highlightPoint?: Earthquake | null;
 }
 export type ThreeSetupProps = {
     canvasRef: React.RefObject<HTMLCanvasElement | null>,

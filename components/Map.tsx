@@ -4,9 +4,10 @@ import { useThreeSetup } from "@/hooks/useThreeSetup";
 import { useTerrain } from "@/hooks/useTerrian";
 import { useEQPoints } from "@/hooks/useEQPoints";
 import { useGuiControls } from "@/hooks/useGuiControls";
+import { useEQHighlight } from "@/hooks/useEQHighlight";
 import type { MapProps } from "@/types/type";
 
-export default function Map({ data }: MapProps) {
+export default function Map({ data, highlightPoint }: MapProps) {
     //Refs
     const initializedRef = useRef(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -23,6 +24,7 @@ export default function Map({ data }: MapProps) {
     const { worldRef, sceneRef, cameraRef, rendererRef } = useThreeSetup({ canvasRef });
     useTerrain({ worldRef, rendererRef, depthRange });
     useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax: depthRange });
+    useEQHighlight({ worldRef, highlightPoint: highlightPoint ?? null });
     useGuiControls({ worldRef, controlsUiRef, scaleSet });
 
     //Check Init
@@ -34,22 +36,26 @@ export default function Map({ data }: MapProps) {
 
     return (
         <>
-            <div ref={containerRef} className="container">
+            <div ref={containerRef} className="mapContainer">
                 <canvas ref={canvasRef} className="canvas" />
                 <div ref={tooltipRef} className="tooltip" />
                 <div ref={controlsUiRef} className="controlsUi" />
             </div>
 
             <style jsx>{`
-                .container {
-                    position: relative;
+                .mapContainer {
                     width: 100%;
+                    height: 100%;
+                    position: relative;
+                    overflow: hidden;
                 }
 
                 .canvas {
                     display: block;
                     width: 100%;
                     height: 100%;
+                    outline: none;
+                    
                 }
                 
                 .tooltip {

@@ -49,6 +49,11 @@ export default function Home() {
   const [gdmData, setGdmData] = useState<Earthquake[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Find max magnitude earthquakes for highlighting
+  const maxTest = parsedTestData.reduce((prev, current) => (prev.amplitude > current.amplitude) ? prev : current, parsedTestData[0] ?? null);
+  const maxReport = parsedReportData.reduce((prev, current) => (prev.amplitude > current.amplitude) ? prev : current, parsedReportData[0] ?? null);
+  const maxGdm = parsedGdmScatalogData.reduce((prev, current) => (prev.amplitude > current.amplitude) ? prev : current, parsedGdmScatalogData[0] ?? null);
+
   // fetch db api
   // useEffect(() => {
   //   let cancelled = false;
@@ -83,25 +88,21 @@ export default function Home() {
       <div className="pageContainer">
         <main className="mainContainer">
 
-          <section className="section">
-            <div className="sectionHeader">
-              <div className="sectionTitle">3D 地震圖 Test</div>
-              <div className="sectionSubtitle">說明欄位...</div>
+          <div className="section">
+            <div className="panel3D">
+              <Map data={parsedTestData} highlightPoint={maxTest} />
             </div>
-            <div className="3DPanel">
-              <Map data={parsedTestData} />
+          </div>
+          <div className="section">
+            <div className="panel3D">
+              <Map data={parsedReportData} highlightPoint={maxReport} />
             </div>
-          </section>
-          <section className="section">
-            <div className="3DPanel">
-              <Map data={parsedReportData} />
+          </div>
+          <div className="section">
+            <div className="panel3D">
+              <Map data={parsedGdmScatalogData} highlightPoint={maxGdm} />
             </div>
-          </section>
-          <section className="section">
-            <div className="3DPanel">
-              <Map data={parsedGdmScatalogData} />
-            </div>
-          </section>
+          </div>
 
           {/* import from db api */}
           {/* <section className="section">
@@ -109,7 +110,7 @@ export default function Home() {
               <div className="sectionTitle">3D 地震圖 Test</div>
               <div className="sectionSubtitle">testData.json</div>
             </div>
-            <div className="3DPanel">
+            <div className="panel3D">
               <Map data={testData} />
             </div>
           </section>
@@ -119,7 +120,7 @@ export default function Home() {
               <div className="sectionTitle">Report</div>
               <div className="sectionSubtitle">reportData.json</div>
             </div>
-            <div className="3DPanel">
+            <div className="panel3D">
               <Map data={reportData} />
             </div>
           </section>
@@ -129,7 +130,7 @@ export default function Home() {
               <div className="sectionTitle">GDMS Catalog</div>
               <div className="sectionSubtitle">GDMScatalog.json</div>
             </div>
-            <div className="3DPanel">
+            <div className="panel3D">
               <Map data={gdmData} />
             </div>
           </section> */}
@@ -142,13 +143,7 @@ export default function Home() {
 
       <style jsx>{`
         .pageContainer {
-          --gray-rgb: 0, 0, 0;
-          --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
-          --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
-
-          --button-primary-hover: #383838;
-          --button-secondary-hover: #f2f2f2;
-
+          width: 100%;
           display: grid;
           grid-template-rows: 20px 1fr 20px;
           align-items: center;
@@ -157,46 +152,50 @@ export default function Home() {
           padding: 80px;
           gap: 64px;
           font-family: var(--font-geist-sans);
+          background: rgba(220, 215, 200, 0.8);
         }
 
         .mainContainer{
+          width: 100%;
           display: flex;
           flex-direction: column;
+          align-items: center;
+          justify-items: center;
           gap: 32px;
           grid-row-start: 2;
         }
 
         .section {
-          width: min(1100px, 100%);
-          background: rgba(var(--gray-rgb), 0.03);
-          border: 1px solid var(--gray-alpha-200);
-          border-radius: 12px;
+          width: 100%;
+          /* Removed border, background, and shadow for a cleaner look */
           padding: 20px 20px 16px 20px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
         }
         .sectionHeader {
           display: flex;
-          align-items: baseline;
-          justify-content: space-between;
+          align-items: center;
+          justify-content: center;
           gap: 12px;
-          margin-bottom: 12px;
+          margin-bottom: 24px; /* Increased margin for better spacing */
         }
         
         .title {
           font-size: 22px;
           font-weight: 700;
+          color: #334155; /* Darker text for contrast on light bg */
         }
         
         .subtitle {
           font-size: 13px;
-          color: #6b7280;
+          color: #64748b;
         }
         
-        .panel {
-          border-radius: 10px;
-          border: 1px solid var(--gray-alpha-200);
+        .panel3D {
+          width: 100%;
+          height: 600px;
+          position: relative;
+          border-radius: 16px; /* Slightly rounder for modern feel */
           overflow: hidden;
-          background: var(--background);
+          /* Removed border */
         }
       `}</style>
     </>

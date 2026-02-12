@@ -9,9 +9,9 @@ export const bounds = {
     latMax: 27.0,
 };
 
-export const cameraFov = 45
-export const cameraNear = 0.1
-export const cameraFar = 5000
+export const cameraFov = 10
+export const cameraNear = 10
+export const cameraFar = 100000
 
 export const targetDepthKm = 100
 
@@ -33,9 +33,6 @@ export const tooltipDisplay = (point: Earthquake) => {
 };
 
 //Styles Constants
-export const width = 800
-export const height = 560
-
 export const planeMatColor = 0xffffff
 export const planeMatOpacity = 0.45
 export const background = 0xf8fafc

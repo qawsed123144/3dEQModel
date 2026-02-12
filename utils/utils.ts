@@ -19,7 +19,7 @@ function lonLatToXY(lon: number, lat: number) {
     const y = R * Math.log(Math.tan(Math.PI / 4 + radianY / 2));
     return { x, y }
 }
-function lonLatToMapXY(lon: number, lat: number) {
+export function lonLatToMapXY(lon: number, lat: number) {
     const { x, y } = lonLatToXY(lon, lat);
     const { x: mapMinX, y: mapMinY } = lonLatToXY(con.bounds.lonMin, con.bounds.latMin);
     return { x: x - mapMinX, y: y - mapMinY };
