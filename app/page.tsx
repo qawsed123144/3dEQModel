@@ -43,37 +43,39 @@ const parsedGdmScatalogData = (gdmScatalogData as GeoJSONCollection).features
   .filter((p): p is Earthquake => p !== null);
 
 export default function Home() {
-  //import from db api
+
   const [testData, setTestData] = useState<Earthquake[]>([]);
   const [reportData, setReportData] = useState<Earthquake[]>([]);
   const [gdmData, setGdmData] = useState<Earthquake[]>([]);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    async function loadData() {
-      try {
-        const [fetchedTestData, fetchedReportData, fetchedGdmData] = await Promise.all([
-          fetchDataset("testData.json"),
-          fetchDataset("reportData.json"),
-          fetchDataset("GDMScatalog.json"),
-        ]);
-        if (!cancelled) {
-          setTestData(fetchedTestData);
-          setReportData(fetchedReportData);
-          setGdmData(fetchedGdmData);
-        }
-      }
-      catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error");
-        }
-      }
-    }
-    loadData();
-    return () => {
-      cancelled = true;
-    }
-  }, [])
+
+  // fetch db api
+  // useEffect(() => {
+  //   let cancelled = false;
+  //   async function loadData() {
+  //     try {
+  //       const [fetchedTestData, fetchedReportData, fetchedGdmData] = await Promise.all([
+  //         fetchDataset("testData.json"),
+  //         fetchDataset("reportData.json"),
+  //         fetchDataset("GDMScatalog.json"),
+  //       ]);
+  //       if (!cancelled) {
+  //         setTestData(fetchedTestData);
+  //         setReportData(fetchedReportData);
+  //         setGdmData(fetchedGdmData);
+  //       }
+  //     }
+  //     catch (err) {
+  //       if (!cancelled) {
+  //         setError(err instanceof Error ? err.message : "Unknown error");
+  //       }
+  //     }
+  //   }
+  //   loadData();
+  //   return () => {
+  //     cancelled = true;
+  //   }
+  // }, [])
   //
 
   return (
