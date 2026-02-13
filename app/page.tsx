@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from "react";
+import { lonLatToMapXY, mapWidth, mapHeight } from "@/utils/utils";
 
 import Map from "@/components/Map";
 import type { Earthquake, GeoJSONFeature, GeoJSONCollection, EarthquakeApi } from "@/types/type";
@@ -49,10 +50,23 @@ export default function Home() {
   const [gdmData, setGdmData] = useState<Earthquake[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Find max magnitude earthquakes for highlighting
-  const maxTest = parsedTestData.reduce((prev, current) => (prev.amplitude > current.amplitude) ? prev : current, parsedTestData[0] ?? null);
-  const maxReport = parsedReportData.reduce((prev, current) => (prev.amplitude > current.amplitude) ? prev : current, parsedReportData[0] ?? null);
-  const maxGdm = parsedGdmScatalogData.reduce((prev, current) => (prev.amplitude > current.amplitude) ? prev : current, parsedGdmScatalogData[0] ?? null);
+  // Find outermost earthquake for highlighting
+  const getOutermost = (data: Earthquake[]) => {
+    if (data.length === 0) return null;
+    const cx = mapWidth / 2;
+    const cy = mapHeight / 2;
+    return data.reduce((farthest, point) => {
+      const { x, y } = lonLatToMapXY(point.lon, point.lat);
+      const dist = (x - cx) ** 2 + (y - cy) ** 2;
+      const { x: fx, y: fy } = lonLatToMapXY(farthest.lon, farthest.lat);
+      const fDist = (fx - cx) ** 2 + (fy - cy) ** 2;
+      return dist > fDist ? point : farthest;
+    }, data[0]);
+  };
+
+  const maxTest = parsedTestData.find(p => Math.abs(p.lat - 24.95) < 0.01 && Math.abs(p.lon - 123.36) < 0.01) || getOutermost(parsedTestData);
+  const maxReport = getOutermost(parsedReportData);
+  const maxGdm = parsedGdmScatalogData.find(p => Math.abs(p.lat - 23.958) < 0.01 && Math.abs(p.lon - 123.302) < 0.01) || getOutermost(parsedGdmScatalogData);
 
   // fetch db api
   // useEffect(() => {

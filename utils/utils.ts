@@ -384,7 +384,7 @@ export function pointsTo3D(points: Earthquake[], spheres: THREE.InstancedMesh, d
         //Set Dummy
         const { x, y } = lonLatToMapXY(point.lon, point.lat);
         const z = - point.depth
-        const radius = THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.01, 12.0)
+        const radius = THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.005, 10.0)
         const color = getEarthquakeColor(point.depth, depthMax)
         dummy.position.set(x, y, z)
         dummy.scale.set(radius, radius, radius)
