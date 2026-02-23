@@ -211,6 +211,54 @@ export default function Home() {
           overflow: hidden;
           /* Removed border */
         }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .pageContainer {
+            padding: 20px;
+            gap: 24px;
+          }
+
+          .mainContainer {
+            gap: 16px;
+          }
+
+          .section {
+            padding: 12px;
+          }
+
+          .panel3D {
+            height: 400px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .pageContainer {
+            padding: 12px;
+            gap: 16px;
+          }
+
+          .mainContainer {
+            gap: 12px;
+          }
+
+          .section {
+            padding: 8px;
+          }
+
+          .panel3D {
+            height: 300px;
+            border-radius: 8px;
+          }
+
+          .title {
+            font-size: 16px;
+          }
+
+          .subtitle {
+            font-size: 11px;
+          }
+        }
       `}</style>
     </>
   );

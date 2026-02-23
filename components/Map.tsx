@@ -86,6 +86,21 @@ export default function Map({ data, highlightPoint }: MapProps) {
                     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
                     border: 1px solid #ddd;
                     border-radius: 6px;
+                    
+                    max-height: 80vh;
+                    overflow-y: auto;
+                }
+
+                @media (max-width: 480px) {
+                    .controlsUi {
+                        right: 4px;
+                        top: 4px;
+                        padding: 4px;
+                        font-size: 10px;
+                        transform: scale(0.75);
+                        transform-origin: top right;
+                        max-height: 60vh;
+                    }
                 }
             `}</style>
         </>
