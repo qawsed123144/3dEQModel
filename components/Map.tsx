@@ -7,7 +7,7 @@ import { useGuiControls } from "@/hooks/useGuiControls";
 import { useEQHighlight } from "@/hooks/useEQHighlight";
 import type { MapProps } from "@/types/type";
 
-export default function Map({ data, highlightPoint }: MapProps) {
+export default function Map({ data, highlightPoint, uniform }: MapProps) {
     //Refs
     const initializedRef = useRef(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,7 @@ export default function Map({ data, highlightPoint }: MapProps) {
     //Hooks
     const { worldRef, sceneRef, cameraRef, rendererRef } = useThreeSetup({ canvasRef });
     useTerrain({ worldRef, rendererRef, depthRange });
-    useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax: depthRange });
+    useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax: depthRange, uniform });
     useEQHighlight({ worldRef, highlightPoint: highlightPoint ?? null });
     useGuiControls({ worldRef, controlsUiRef, scaleSet });
 

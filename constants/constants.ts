@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Earthquake } from "@/types/type";
 
-export const EARTH_RADIUS = 6378.137;
+export const EARTH_RADIUS = 6378.137; // Web Mercator Radius
 export const bounds = {
     lonMin: 118,
     lonMax: 126,
@@ -38,6 +38,9 @@ export const planeMatOpacity = 0.45
 export const background = 0xf8fafc
 export const statelliteTileDefultColor = "0xd6d3d1"
 export const terrariumTileDefultColor = "rgb(128,128,128)"
+
+export const pointUniformColor = 0xffffff
+export const pointUniformRadius = 2
 
 export const wallMat = new THREE.ShaderMaterial({
     uniforms: {

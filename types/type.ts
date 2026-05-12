@@ -60,6 +60,7 @@ export type onPointerMoveProps = {
 export type MapProps = {
     data: Earthquake[];
     highlightPoint?: Earthquake | null;
+    uniform?: boolean;
 }
 export type ThreeSetupProps = {
     canvasRef: React.RefObject<HTMLCanvasElement | null>,
@@ -76,6 +77,7 @@ export type EQPointsProps = {
     tooltipRef: React.RefObject<HTMLDivElement | null>;
     EQData: Earthquake[];
     depthMax: number;
+    uniform?: boolean;
 }
 export type GuiControlsProps = {
     worldRef: React.RefObject<THREE.Group | null>;

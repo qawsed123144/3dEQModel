@@ -104,6 +104,12 @@ export default function Home() {
 
           <div className="section">
             <div className="panel3D">
+              <Map data={parsedGdmScatalogData} highlightPoint={null} uniform={true} />
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="panel3D">
               <Map data={parsedTestData} highlightPoint={maxTest} />
             </div>
           </div>

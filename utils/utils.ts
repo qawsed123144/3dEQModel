@@ -10,6 +10,7 @@ export const { mapWidth, mapHeight } = boundsToMapSize(con.bounds)
 function degreeToRadian(degree: number) {
     return degree * Math.PI / 180
 }
+// Web Mercator
 function lonLatToXY(lon: number, lat: number) {
     const R = con.EARTH_RADIUS
     const radianX = degreeToRadian(lon)
@@ -31,20 +32,19 @@ function boundsToMapSize(BOUNDS: Bounds) {
     const mapHeight = Math.abs(ymax - ymin)
     return { mapWidth, mapHeight }
 }
-function lonLatToTileIdx(lon: number, lat: number, zoom: number) {
-    const n = Math.pow(2, zoom);
-    const tileXIdx = Math.floor((lon + 180) / 360 * n);
-    const tileYIdx = Math.floor(
-        ((1 - Math.log(Math.tan(degreeToRadian(lat)) + 1 / Math.cos(degreeToRadian(lat))) / Math.PI) / 2) * n
-    );
-    return { tileXIdx, tileYIdx };
-}
 function lonLatToGlobalPixel(lon: number, lat: number, zoom: number) {
     const n = Math.pow(2, zoom);
-    const x = ((lon + 180) / 360) * n * con.tileSize;
+    const radianX = degreeToRadian(lon);
     const radianY = degreeToRadian(lat);
-    const y = ((1 - Math.log(Math.tan(Math.PI / 4 + radianY / 2)) / Math.PI) / 2) * n * con.tileSize;
-    return { x, y };
+    const pixelX = ((radianX + Math.PI) / (2 * Math.PI)) * n * con.tileSize;
+    const pixelY = ((- Math.log(Math.tan(Math.PI / 4 + radianY / 2)) + Math.PI) / (2 * Math.PI)) * n * con.tileSize;
+    return { pixelX, pixelY };
+}
+function lonLatToTileIdx(lon: number, lat: number, zoom: number) {
+    const { pixelX, pixelY } = lonLatToGlobalPixel(lon, lat, zoom);
+    const tileXIdx = Math.floor(pixelX / con.tileSize);
+    const tileYIdx = Math.floor(pixelY / con.tileSize);
+    return { tileXIdx, tileYIdx };
 }
 function xyToLonLat(x: number, y: number) {
     const R = con.EARTH_RADIUS
@@ -80,10 +80,10 @@ function prepareLoadTiles(detail: number) {
     // Pixel
     const topLeftPx = lonLatToGlobalPixel(con.bounds.lonMin, con.bounds.latMax, detail);
     const bottomRightPx = lonLatToGlobalPixel(con.bounds.lonMax, con.bounds.latMin, detail);
-    const pixelXMin = topLeftPx.x;
-    const pixelXMax = bottomRightPx.x;
-    const pixelYMin = topLeftPx.y;
-    const pixelYMax = bottomRightPx.y;
+    const pixelXMin = topLeftPx.pixelX;
+    const pixelXMax = bottomRightPx.pixelX;
+    const pixelYMin = topLeftPx.pixelY;
+    const pixelYMax = bottomRightPx.pixelY;
 
     //Canvas setting
     const cols = tileXMax - tileXMin + 1;
@@ -208,11 +208,11 @@ function elevationAtXY({ x, y, elevImageData, elevMeta, terrainExaggeration }: e
     const absX = mapMinX + x;
     const absY = mapMinY + y;
     const { lon, lat } = xyToLonLat(absX, absY);
-    const { x: globalPixelX, y: globalPixelY } = lonLatToGlobalPixel(lon, lat, elevMeta.zoom);
-    const { x: startGPX, y: startGPY } = lonLatToGlobalPixel(con.bounds.lonMin, con.bounds.latMax, elevMeta.zoom);
+    const { pixelX, pixelY } = lonLatToGlobalPixel(lon, lat, elevMeta.zoom);
+    const { pixelX: startPX, pixelY: startPY } = lonLatToGlobalPixel(con.bounds.lonMin, con.bounds.latMax, elevMeta.zoom);
 
-    const localPixelX = Math.max(0, Math.min(elevMeta.width - 1, Math.floor(globalPixelX - startGPX)));
-    const localPixelY = Math.max(0, Math.min(elevMeta.height - 1, Math.floor(globalPixelY - startGPY)));
+    const localPixelX = Math.max(0, Math.min(elevMeta.width - 1, Math.floor(pixelX - startPX)));
+    const localPixelY = Math.max(0, Math.min(elevMeta.height - 1, Math.floor(pixelY - startPY)));
 
     const idx = (localPixelY * elevMeta.width + localPixelX) * 4;
     const r = elevImageData.data[idx + 0];
@@ -378,14 +378,15 @@ function getEarthquakeColor(depth: number, depthMax: number) {
 
     return new THREE.Color().setHSL(hue, saturation, lightness);
 }
-export function pointsTo3D(points: Earthquake[], spheres: THREE.InstancedMesh, depthMax: number) {
+export function pointsTo3D(points: Earthquake[], spheres: THREE.InstancedMesh, depthMax: number, uniform?: boolean) {
     const dummy = new THREE.Object3D();
+    const uniformColor = new THREE.Color(con.pointUniformColor);
     points.forEach((point, index) => {
         //Set Dummy
         const { x, y } = lonLatToMapXY(point.lon, point.lat);
         const z = - point.depth
-        const radius = THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.005, 10.0)
-        const color = getEarthquakeColor(point.depth, depthMax)
+        const radius = uniform ? con.pointUniformRadius : THREE.MathUtils.mapLinear(point.amplitude, 1, 7.0, 0.005, 10.0);
+        const color = uniform ? uniformColor : getEarthquakeColor(point.depth, depthMax);
         dummy.position.set(x, y, z)
         dummy.scale.set(radius, radius, radius)
         dummy.updateMatrix()

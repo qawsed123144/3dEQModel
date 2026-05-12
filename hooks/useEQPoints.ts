@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { createGrid, pointsTo3D, onPointerMove } from "@/utils/utils";
 import type { EQPointsProps } from "@/types/type";
 
-export function useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax }: EQPointsProps) {
+export function useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQData, depthMax, uniform }: EQPointsProps) {
     let grid: THREE.LineSegments | null = null;
     let spheres: THREE.InstancedMesh | null = null;
     let sphereGeo: THREE.SphereGeometry | null = null;
@@ -29,7 +29,7 @@ export function useEQPoints({ worldRef, cameraRef, rendererRef, tooltipRef, EQDa
         sphereMat.needsUpdate = true;
         spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, EQData.length);
         spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        pointsTo3D(EQData, spheres, depthMax)
+        pointsTo3D(EQData, spheres, depthMax, uniform)
         sphereMat.needsUpdate = true;
         worldRef.current.add(spheres)
 
